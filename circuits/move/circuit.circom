@@ -1,6 +1,7 @@
 include "../../node_modules/circomlib/circuits/mimcsponge.circom";
 include "../../node_modules/circomlib/circuits/comparators.circom";
 include "../modulo/modulo.circom";
+include "../is_negative/is_negative.circom";
 
 template Main() {
     signal input playerId;
@@ -14,6 +15,7 @@ template Main() {
     signal input distMax;
     signal input chanceToFind;
     signal input maxMonsterId;
+    signal input wallet;
 
     signal output hash1;
     signal output hash2;
@@ -26,8 +28,28 @@ template Main() {
     signal output isEncounter;
     signal output roll;
     signal output monsterRoll;
+    signal output playerWallet;
     time <== timestamp;
     encounterChance<== chanceToFind;
+    playerWallet <== wallet;
+
+
+    component isXValid = IsNegative();
+    isXValid.in <== x1;
+    isXValid.out === 0;
+
+    component isYValid = IsNegative();
+    isYValid.in <== y1;
+    isYValid.out === 0;
+
+    component isNewXValid = IsNegative();
+    isNewXValid.in <== x2;
+    isNewXValid.out === 0;
+
+    component isNewYValid = IsNegative();
+    isNewYValid.in <== y2;
+    isNewYValid.out === 0;
+
 
 
     component isZero = IsZero();
@@ -82,7 +104,7 @@ template Main() {
     // pick monster
 
     component monsterMimc = MiMCSponge(4, 100, 1);
-    monsterMimc.ins[0] <== chanceToFind;
+    monsterMimc.ins[0] <== wallet;
     monsterMimc.ins[1] <== hash1;
     monsterMimc.ins[2] <== hash2;
     monsterMimc.ins[3] <== rng.out;

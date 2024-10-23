@@ -1,17 +1,19 @@
 import { expect } from "chai";
 import { exportCallDataGroth16 } from "../../utils/exportCallDataGroth16";
-import { ethers } from "ethers";
 import { MonsterListMock } from "../utils/MonkMonsterList";
-
+import { ethers } from "hardhat";
 describe("TinyWorld", function () {
   beforeEach(async function () {});
 
   it("should perlin work", async function () {
+    const [deployer] = await ethers.getSigners();
     let wasmCircuitPath = "./circuits/move/circuit_js/circuit.wasm";
     let zkeyCircuit = "./circuits/move/circuit.zkey";
 
     let catchWasmCircuitPath = "./circuits/catch/circuit_js/circuit.wasm";
     let catchZkeyCircuit = "./circuits/catch/circuit.zkey";
+
+    console.log(deployer.address);
 
     let Grid = [];
     var startX = 0;
@@ -34,6 +36,7 @@ describe("TinyWorld", function () {
           distMax: 1,
           chanceToFind: 10000,
           maxMonsterId: 100, // x/100.000
+          wallet: ethers.toBigInt(deployer.address),
         };
 
         let movement = await exportCallDataGroth16(
@@ -55,11 +58,15 @@ describe("TinyWorld", function () {
           is_encounter,
           roll,
           monsterRoll,
+          wallet,
         ] = m;
-        const modulo = BigInt(hash1) % BigInt(100000);
+
+        // const modulo = BigInt(hash1) % BigInt(100000);
         // const hasValue = modulo <= BigInt(encounterChance);
         console.log(
-          `Moved to ${newX},${newY}, ${new Date(time * 1).toUTCString()}`
+          `Moved to ${newX},${newY}, ${new Date(
+            time * 1
+          ).toUTCString()}, ${wallet} - ${ethers.toBeHex(wallet)}`
         );
         if (parseInt(is_encounter) == 1) {
           console.log(
@@ -76,6 +83,7 @@ describe("TinyWorld", function () {
             monsterRoll, // x/100.000
             chanceToFind: inputData.chanceToFind,
             chanceToCatch: 500, // x1000
+            wallet: ethers.toBigInt(deployer.address),
           };
 
           console.log(

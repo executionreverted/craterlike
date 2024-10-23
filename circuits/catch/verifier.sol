@@ -37,10 +37,10 @@ contract Groth16Verifier {
     uint256 constant gammax2 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
     uint256 constant gammay1 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
     uint256 constant gammay2 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
-    uint256 constant deltax1 = 2867372370077404995485035669830586103088243210601405266531721363194948672509;
-    uint256 constant deltax2 = 1331186922872957903123547877697004846188869271788966203272404021646882318978;
-    uint256 constant deltay1 = 14607164325479867193319208949949916532730954316142540131864714621168106780812;
-    uint256 constant deltay2 = 20986776595599909175581628345597509049645506300902849604096530608137965608847;
+    uint256 constant deltax1 = 9822538603855883657366780576622558881445049601194925295384825021672694755093;
+    uint256 constant deltax2 = 8040509638692071749099991575192968165143860901301951546544173067398379628137;
+    uint256 constant deltay1 = 10498391190303983986309006770898414505593164067374705230846219743368586559584;
+    uint256 constant deltay2 = 15972004492651900210851140917488791928799002290527251187364690403286702810806;
 
     
     uint256 constant IC0x = 17170155718915194532206618955002319655667401262716956041976564486503645596593;
@@ -64,6 +64,9 @@ contract Groth16Verifier {
     uint256 constant IC6x = 2853605334927267407429143946126847557124088720675046656814582877086361811807;
     uint256 constant IC6y = 9610819841963859045226234197533769050333470184838242786458481697803880355391;
     
+    uint256 constant IC7x = 20753350239076427434242729427130488735835368690723192718356008473765340742769;
+    uint256 constant IC7y = 2526430754611036047831086882957550257856099463921206668942599761767871587424;
+    
  
     // Memory data
     uint16 constant pVk = 0;
@@ -71,7 +74,7 @@ contract Groth16Verifier {
 
     uint16 constant pLastMem = 896;
 
-    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[6] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint[2] calldata _pA, uint[2][2] calldata _pB, uint[2] calldata _pC, uint[7] calldata _pubSignals) public view returns (bool) {
         assembly {
             function checkField(v) {
                 if iszero(lt(v, r)) {
@@ -126,6 +129,8 @@ contract Groth16Verifier {
                 g1_mulAccC(_pVk, IC5x, IC5y, calldataload(add(pubSignals, 128)))
                 
                 g1_mulAccC(_pVk, IC6x, IC6y, calldataload(add(pubSignals, 160)))
+                
+                g1_mulAccC(_pVk, IC7x, IC7y, calldataload(add(pubSignals, 192)))
                 
 
                 // -A
@@ -191,6 +196,8 @@ contract Groth16Verifier {
             checkField(calldataload(add(_pubSignals, 128)))
             
             checkField(calldataload(add(_pubSignals, 160)))
+            
+            checkField(calldataload(add(_pubSignals, 192)))
             
 
             // Validate all evaluations

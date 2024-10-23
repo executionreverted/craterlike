@@ -12,6 +12,7 @@ template Main() {
     signal input monsterRoll;
     signal input chanceToFind;
     signal input chanceToCatch;
+    signal input wallet;
 
     signal output player;
     signal output monsterId;
@@ -19,7 +20,9 @@ template Main() {
     signal output hash2_;
     signal output catchHash;
     signal output success;
+    signal output playerWallet;
 
+    playerWallet <== wallet;
     hash1_<==hash1;
     hash2_<==hash2;
     player <== playerId;
@@ -31,7 +34,7 @@ template Main() {
     roll <== rng.out;
 
     component monsterMimc = MiMCSponge(4, 100, 1);
-    monsterMimc.ins[0] <== chanceToFind;
+    monsterMimc.ins[0] <== wallet;
     monsterMimc.ins[1] <== hash1;
     monsterMimc.ins[2] <== hash2;
     monsterMimc.ins[3] <== rng.out;
@@ -42,7 +45,6 @@ template Main() {
     rng2.divider <== maxMonsterId;
     monsterRoll === rng2.out;
     monsterId <== monsterRoll;
-
 
     // catch rng
     component monsterCatchMimc = MiMCSponge(4, 100, 1);
