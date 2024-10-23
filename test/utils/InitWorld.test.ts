@@ -1,6 +1,6 @@
 import { ethers, upgrades } from "hardhat";
 import { World } from "../../typechain-types";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import {} from "@nomiclabs/hardhat-ethers/signers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 export interface TestContracts {
@@ -19,9 +19,9 @@ export interface World$ {
 export async function initializeContracts(): Promise<TestContracts> {
   const CoreFactory = await ethers.getContractFactory("World");
   const [deployer, user1, user2] = await ethers.getSigners();
-  const core = await upgrades.deployProxy(CoreFactory, [
+  const core: World = (await upgrades.deployProxy(CoreFactory, [
     await deployer.getAddress(),
-  ]);
+  ])) as World;
 
   return {
     core,

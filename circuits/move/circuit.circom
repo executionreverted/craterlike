@@ -1,65 +1,47 @@
-/*
-    Prove: I know (x1,y1,x2,y2,p2,r2,distMax) such that:
-    - x2^2 + y2^2 <= r^2
-    - perlin(x2, y2) = p2
-    - (x1-x2)^2 + (y1-y2)^2 <= distMax^2
-    - MiMCSponge(x1,y1) = pub1
-    - MiMCSponge(x2,y2) = pub2
-*/
-
 include "../../node_modules/circomlib/circuits/mimcsponge.circom";
 include "../../node_modules/circomlib/circuits/comparators.circom";
-include "../perlin/range_proof/circuit.circom";
-include "../perlin/circuit.circom";
+include "../modulo/modulo.circom";
 
 template Main() {
-    signal  input x1;
-    signal  input y1;
-    signal  input x2;
-    signal  input y2;
+    signal input playerId;
+    signal input nonce;
+    signal input x1;
+    signal input y1;
+    signal input x2;
+    signal input y2;
+    signal input timestamp;
     signal input r;
     signal input distMax;
-    signal input PLANETHASH_KEY;
-    signal input SPACETYPE_KEY;
-    signal input SCALE; // must be power of 2 at most 16384 so that DENOMINATOR works
-    signal input xMirror; // 1 is true, 0 is false
-    signal input yMirror; // 1 is true, 0 is false
+    signal input chanceToFind;
+    signal input maxMonsterId;
 
-    signal output pub1;
-    signal output pub2;
-    signal output perl2;
+    signal output hash1;
+    signal output hash2;
+    signal output time;
+    signal output newX;
+    signal output newY;
+    signal output playerId_;
+    signal output nonce_;
+    signal output encounterChance;
+    signal output isEncounter;
+    signal output roll;
+    signal output monsterRoll;
+    time <== timestamp;
+    encounterChance<== chanceToFind;
 
-    /* check abs(x1), abs(y1), abs(x2), abs(y2) <= 2^31 */
-    component n2bx1 = Num2Bits(32);
-    n2bx1.in <== x1 + (1 << 31);
-    component n2by1 = Num2Bits(32);
-    n2by1.in <== y1 + (1 << 31);
-    component n2bx2 = Num2Bits(32);
-    n2bx2.in <== x2 + (1 << 31);
-    component n2by2 = Num2Bits(32);
-    n2by2.in <== y2 + (1 << 31);
 
-    /* check x2^2 + y2^2 < r^2 */
+    component isZero = IsZero();
+    isZero.in <== distMax;
+    isZero.out === 0;
 
-    component comp2 = LessThan(64);
-    signal x2Sq;
-    signal y2Sq;
-    signal rSq;
-    x2Sq <== x2 * x2;
-    y2Sq <== y2 * y2;
-    rSq <== r * r;
-    comp2.in[0] <== x2Sq + y2Sq;
-    comp2.in[1] <== rSq;
-    comp2.out === 1;
-
-    /* check (x1-x2)^2 + (y1-y2)^2 <= distMax^2 */
+    /* check (x2-x1)^2 + (y2-y1)^2 <= distMax^2 */
 
     signal diffX;
-    diffX <== x1 - x2;
+    diffX <== x2 - x1;
     signal diffY;
-    diffY <== y1 - y2;
+    diffY <== y2 - y1;
 
-    component ltDist = LessThan(64);
+    component ltDist = LessEqThan(64);
     signal firstDistSquare;
     signal secondDistSquare;
     firstDistSquare <== diffX * diffX;
@@ -68,33 +50,48 @@ template Main() {
     ltDist.in[1] <== distMax * distMax + 1;
     ltDist.out === 1;
 
-    /* check MiMCSponge(x1,y1) = pub1, MiMCSponge(x2,y2) = pub2 */
-    /*
-        220 = 2 * ceil(log_5 p), as specified by mimc paper, where
-        p = 21888242871839275222246405745257275088548364400416034343698204186575808495617
-    */
-    component mimc1 = MiMCSponge(2, 220, 1);
-    component mimc2 = MiMCSponge(2, 220, 1);
+    // generate hashes for psuedo rng
+    component mimc1 = MiMCSponge(3, 100, 1);
+    component mimc2 = MiMCSponge(3, 100, 1);
 
     mimc1.ins[0] <== x1;
     mimc1.ins[1] <== y1;
-    mimc1.k <== PLANETHASH_KEY;
+    mimc1.ins[2] <== timestamp;
+    mimc1.k <== timestamp;
     mimc2.ins[0] <== x2;
     mimc2.ins[1] <== y2;
-    mimc2.k <== PLANETHASH_KEY;
+    mimc2.ins[2] <== timestamp;
+    mimc2.k <== timestamp;
 
-    pub1 <== mimc1.outs[0];
-    pub2 <== mimc2.outs[0];
+    hash1 <== mimc1.outs[0];
+    hash2 <== mimc2.outs[0];
+    newX <== x2;
+    newY <== y2;
 
-    /* check perlin(x2, y2) = p2 */
-    component perlin = MultiScalePerlin();
-    perlin.p[0] <== x2;
-    perlin.p[1] <== y2;
-    perlin.KEY <== SPACETYPE_KEY;
-    perlin.SCALE <== SCALE;
-    perlin.xMirror <== xMirror;
-    perlin.yMirror <== yMirror;
-    perl2 <== perlin.out;
+    // is encounter
+    component rng = Modulo();
+    rng.in <== hash1;
+    rng.divider <== 100000;
+    roll <== rng.out;
+
+    component rollLt = LessThan(64);
+    rollLt.in[0] <== roll;
+    rollLt.in[1] <== chanceToFind;
+    isEncounter <== rollLt.out;
+
+    // pick monster
+
+    component monsterMimc = MiMCSponge(4, 100, 1);
+    monsterMimc.ins[0] <== chanceToFind;
+    monsterMimc.ins[1] <== hash1;
+    monsterMimc.ins[2] <== hash2;
+    monsterMimc.ins[3] <== rng.out;
+    monsterMimc.k <== hash1+timestamp;
+
+    component rng2 = Modulo();
+    rng2.in <== monsterMimc.outs[0];
+    rng2.divider <== maxMonsterId;
+    monsterRoll <== rng2.out;
 }
 
 component main = Main();

@@ -1,6 +1,6 @@
 include "../../node_modules/circomlib/circuits/comparators.circom";
 
-template Modulo (n) {
+template Modulo () {
     signal input in;
     signal input divider;
     signal output out;
@@ -11,7 +11,7 @@ template Modulo (n) {
 
     in === quotient*divider + out;
 
-    component lessThan = LessThan(n);
+    component lessThan = LessThan(252);
     lessThan.in[0] <== out;
     lessThan.in[1] <== divider;
     lessThan.out === 1;
